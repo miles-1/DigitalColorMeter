@@ -1,5 +1,5 @@
 from pyautogui import screenshot, position
-from tkinter import Tk, Label, Button
+from tkinter import Tk, Label, Button, Text
 from PIL import ImageDraw, ImageTk
 from sys import platform
 
@@ -11,15 +11,26 @@ class Meter:
         self.pos, self.img, self.color = (None,) * 3
         self.view_rad, self.scale = 7, 15
         self.mag = self.scale * (2 * self.view_rad + 1)
-        self.getScreen()
-        self.updateImg(True)
-        self.root.bind("<Motion>", lambda _: self.updateImg())
+        self.color_msg = f"{'Saved Colors (S):':^60}\n" + "-"*60 + "\n"
+        self.color_lst = []
+        self.getScreen(initial=True)
+        self.root.bind("u", self.getScreen)
+        self.root.bind("s", self.saveColor)
+        self.updateImg(initial=True)
 
-    def getScreen(self):
+    def getScreen(self, event=None, initial=False):
         self.screen = screenshot()
+        if not initial:
+            self.updateImg(repeat=False)
+    
+    def saveColor(self, event=None, max_len=5):
+        notes = f"Pos: {str(self.pos):<12}\tRGB: {str(self.color):<17}\tHex: #{'%02x%02x%02x' % self.color}"
+        self.color_lst = [notes] + self.color_lst[:max_len-1]
+        self.save_text.delete(1.0, "end")
+        self.save_text.insert(1.0, self.color_msg + "\n".join(self.color_lst))
 
-    def updateImg(self, initial=False):
-        if self.updatePos():
+    def updateImg(self, initial=False, repeat=True):
+        if self.updatePos() or not repeat:
             x, y = self.pos
             c, m, s = self.view_rad, self.mag, self.scale
             self.color = self.screen.getpixel((x, y))[:3]
@@ -37,11 +48,16 @@ class Meter:
                 self.text_label = Label(self.root, text=self.getLabelText(), justify="left")
                 self.text_label.grid(row=0, column=1, padx=(0,20), sticky="w")
                 Button(self.root, 
-                       text="Update Screenshot", 
+                       text="Update Screenshot (U)", 
                        command=self.getScreen).grid(row=1, column=1, padx=(0,20))
+                self.save_text = Text(self.root, height=7, width=60, borderwidth=0)
+                self.save_text.insert(1.0, self.color_msg)
+                self.save_text.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
             else:
                 self.img_label.config(image=self.img)
                 self.text_label.config(text=self.getLabelText())
+        if repeat:
+            self.root.after(10, self.updateImg)
 
     def updatePos(self):
         old_pos = self.pos
@@ -49,9 +65,9 @@ class Meter:
         return self.pos != old_pos
     
     def getLabelText(self):
-        return f"Position:\n   ({self.pos[0]}, {self.pos[1]})\n\n" + \
-               f"R: {self.color[0]}\nG: {self.color[1]}\nB: {self.color[2]}\n\n" + \
-               f"Hex:\n   #{'%02x%02x%02x' % self.color}"
+        return f"Position:\n   {self.pos}\n\n" + \
+               "".join(f"{comp}: {self.color[num]}\n" for num, comp in enumerate(("R", "G", "B"))) + \
+               f"\nHex:\n   #{'%02x%02x%02x' % self.color}"
 
 if __name__ == '__main__':
     root = Tk()

@@ -5,5 +5,5 @@ This is a cross-platform digital color meter, similar to apple's built-in Digita
 OS-specific apps created with PyInstaller using the following command:
 
 ```
-pyinstaller digitalcolormeter.py --onefile --noconsole --name "Digital Color Meter" --icon "./icon.ico"
+pyinstaller digitalcolormeter.py --onefile --noconsole --hidden-import=pyautogui --name="DigitalColorMeter" --icon="./icon.ico"
 ```
